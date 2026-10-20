@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: sena-social-network
+    runtime: node
+    plan: free
+    buildCommand: npm run build
+    startCommand: npm start
+    envVars:
+      - key: DATABASE_URL
+        value: mysql://5TcvRzgdUnG5tBv.root:p7Uyq2M7xCda14eP@gateway01.us-east-1.prod.aws.tidbcloud.com:4000/sena_social_db
+      - key: JWT_SECRET
+        value: sena_jwt_secret_token_key_2026_secure
+      - key: NODE_ENV
+        value: production
