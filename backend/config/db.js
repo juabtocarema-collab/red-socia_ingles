@@ -35,7 +35,8 @@ async function tryAutoStartMysql() {
 }
 
 export async function initDB() {
-  const dbUrlString = process.env.DATABASE_URL || process.env.MYSQL_URL;
+  const TIDB_CLOUD_URL = 'mysql://5TcvRzgdUnG5tBv.root:p7Uyq2M7xCda14eP@gateway01.us-east-1.prod.aws.tidbcloud.com:4000/sena_social_db';
+  const dbUrlString = process.env.DATABASE_URL || process.env.MYSQL_URL || (process.env.RENDER || process.env.NODE_ENV === 'production' ? TIDB_CLOUD_URL : null);
   const isRemote = Boolean(dbUrlString || (DB_HOST !== '127.0.0.1' && DB_HOST !== 'localhost'));
 
   let poolConfig;
