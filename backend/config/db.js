@@ -303,8 +303,8 @@ async function seedInitialData() {
 
   // 1. Create main user: Juan Pablo Tocarema Ávila (id: 1)
   const [u1] = await pool.query(
-    `INSERT INTO users (username, full_name, email, password_hash, age, occupation, origin_city, gender, phone, languages, avatar_url, cover_url, bio, program, ficha)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO users (username, full_name, email, password_hash, age, occupation, origin_city, gender, phone, languages, avatar_url, cover_url, bio, program, ficha, role)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       'juanpato27',
       'Juan Pablo Tocarema Ávila',
@@ -320,7 +320,8 @@ async function seedInitialData() {
       '/assets/sena_campus_cover.jpg',
       'I am a committed and responsible SENA apprentice with a strong passion for learning. I enjoy technology, programming, and video games. My goal is to become a proficient full-stack software developer and contribute to the SENA community.',
       'Análisis y Desarrollo de Software (ADSO)',
-      'Ficha 2670142'
+      'Ficha 2670142',
+      'superadmin'
     ]
   );
   const juanId = u1.insertId;
