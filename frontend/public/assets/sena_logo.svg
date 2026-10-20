@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 240" fill="none">
+  <!-- Official SENA Symbol in Pure White -->
+  <g fill="#ffffff">
+    <!-- Top circle/head -->
+    <circle cx="150" cy="40" r="16" />
+    
+    <!-- Torso and horizontal arms -->
+    <path d="M70 70 H230 V88 H190 V105 H215 V120 H185 L180 180 H155 L158 135 H142 L145 180 H120 L115 120 H85 V105 H110 V88 H70 Z" />
+    
+    <!-- Outer angled legs / gear arcs -->
+    <path d="M125 125 L90 220 H115 L140 150 L132 125 Z" />
+    <path d="M175 125 L210 220 H185 L160 150 L168 125 Z" />
+    <path d="M150 148 L142 220 H158 Z" />
+    
+    <!-- SENA letters text -->
+    <text x="150" y="24" font-family="'Inter', 'Arial Black', sans-serif" font-weight="900" font-size="28" text-anchor="middle" letter-spacing="4">SENA</text>
+  </g>
+</svg>
