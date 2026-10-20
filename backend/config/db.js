@@ -141,6 +141,8 @@ async function createTables() {
       program VARCHAR(150) DEFAULT 'Análisis y Desarrollo de Software',
       ficha VARCHAR(50) DEFAULT 'Ficha 2670142',
       role VARCHAR(20) DEFAULT 'aprendiz',
+      is_online BOOLEAN DEFAULT TRUE,
+      last_active_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     ) ENGINE=InnoDB;`,
