@@ -1,4 +1,4 @@
-const API_BASE = window.location.port === '5173' ? 'http://localhost:5000/api' : '/api';
+const API_BASE = import.meta.env.VITE_API_URL || (window.location.port === '5173' ? `http://${window.location.hostname}:5000/api` : '/api');
 
 function getHeaders(isFormData = false) {
   const headers = {};
@@ -32,6 +32,16 @@ export const api = {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Error al conectar usuario de prueba');
+    return data;
+  },
+
+  async adminQuickLogin() {
+    const res = await fetch(`${API_BASE}/auth/admin-quick-login`, {
+      method: 'POST',
+      headers: getHeaders()
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al iniciar como Administrador');
     return data;
   },
 
@@ -402,5 +412,20 @@ export const api = {
       headers: getHeaders()
     });
     return res.json();
+  },
+
+  async getSupabaseStatus() {
+    const res = await fetch(`${API_BASE}/supabase-status`);
+    return res.json();
+  },
+
+  async syncSupabase() {
+    const res = await fetch(`${API_BASE}/admin/sync-supabase`, {
+      method: 'POST',
+      headers: getHeaders()
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al sincronizar con Supabase');
+    return data;
   }
 };

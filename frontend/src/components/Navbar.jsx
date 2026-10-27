@@ -5,7 +5,7 @@ import { api } from '../api';
 import LanguageSwitcher from './LanguageSwitcher';
 
 export default function Navbar({ onSearch, setCurrentView }) {
-  const { currentUser, logout, switchDemoUser, setAuthModalOpen, setAuthMode } = useAuth();
+  const { currentUser, logout, switchDemoUser, loginAsAdmin, setAuthModalOpen, setAuthMode } = useAuth();
   const { t } = useLanguage();
   const [searchTerm, setSearchTerm] = useState('');
   const [notifications, setNotifications] = useState([]);
@@ -111,6 +111,19 @@ export default function Navbar({ onSearch, setCurrentView }) {
 
         {currentUser ? (
           <>
+            {/* Quick Admin Panel Button */}
+            {(currentUser.role === 'superadmin' || currentUser.role === 'admin') && (
+              <button
+                type="button"
+                className="btn btn-warning btn-sm rounded-pill px-3 fw-bold text-dark d-flex align-items-center gap-1 shadow-sm ms-2"
+                onClick={() => setCurrentView('admin')}
+                title="Abrir Panel de Administración SENA"
+              >
+                <i className="bi bi-shield-lock-fill"></i>
+                <span className="d-none d-md-inline">Panel Admin</span>
+              </button>
+            )}
+
             {/* Notification Bell */}
             <div style={{ position: 'relative' }} ref={notifRef}>
               <button
@@ -258,24 +271,58 @@ export default function Navbar({ onSearch, setCurrentView }) {
                       {t('nav.switchDemo')}
                     </div>
                     <button
-                      className="dropdown-item py-2 px-3 small d-flex align-items-center gap-2"
+                      className={`dropdown-item py-2 px-3 small d-flex align-items-center justify-content-between ${currentUser?.id === 1 ? 'fw-bold bg-light' : ''}`}
                       onClick={() => {
                         switchDemoUser(1);
                         setShowUserMenu(false);
                       }}
                     >
-                      <img src="/assets/juan_pablo_avatar.jpg" className="rounded-circle" style={{ width: 20, height: 20 }} />
-                      Juan Pablo Tocarema (ADSO)
+                      <div className="d-flex align-items-center gap-2">
+                        <img src="/assets/juan_pablo_avatar.jpg" className="rounded-circle" style={{ width: 22, height: 22, objectFit: 'cover' }} />
+                        <span>Juan Pablo Tocarema (ADSO)</span>
+                      </div>
+                      {currentUser?.id === 1 && <i className="bi bi-check2 text-success fw-bold"></i>}
                     </button>
                     <button
-                      className="dropdown-item py-2 px-3 small d-flex align-items-center gap-2"
+                      className={`dropdown-item py-2 px-3 small d-flex align-items-center justify-content-between ${currentUser?.id === 2 ? 'fw-bold bg-light' : ''}`}
                       onClick={() => {
                         switchDemoUser(2);
                         setShowUserMenu(false);
                       }}
                     >
-                      <img src="/assets/camila_avatar.jpg" className="rounded-circle" style={{ width: 20, height: 20 }} />
-                      Camila Rodríguez (Redes)
+                      <div className="d-flex align-items-center gap-2">
+                        <img src="/assets/camila_avatar.jpg" className="rounded-circle" style={{ width: 22, height: 22, objectFit: 'cover' }} />
+                        <span>Camila Rodríguez (Redes)</span>
+                      </div>
+                      {currentUser?.id === 2 && <i className="bi bi-check2 text-success fw-bold"></i>}
+                    </button>
+                    <button
+                      className={`dropdown-item py-2 px-3 small d-flex align-items-center justify-content-between ${currentUser?.id === 3 ? 'fw-bold bg-light' : ''}`}
+                      onClick={() => {
+                        switchDemoUser(3);
+                        setShowUserMenu(false);
+                      }}
+                    >
+                      <div className="d-flex align-items-center gap-2">
+                        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80" className="rounded-circle" style={{ width: 22, height: 22, objectFit: 'cover' }} />
+                        <span>Carlos Andrés Mendoza (Animación 3D)</span>
+                      </div>
+                      {currentUser?.id === 3 && <i className="bi bi-check2 text-success fw-bold"></i>}
+                    </button>
+                    <button
+                      className={`dropdown-item py-2 px-3 small d-flex align-items-center justify-content-between ${(currentUser?.username === 'admin' || currentUser?.role === 'superadmin') && currentUser?.id !== 1 ? 'fw-bold bg-light' : ''}`}
+                      onClick={() => {
+                        switchDemoUser('admin');
+                        setShowUserMenu(false);
+                      }}
+                    >
+                      <div className="d-flex align-items-center gap-2">
+                        <div className="rounded-circle bg-warning text-dark d-flex align-items-center justify-content-center" style={{ width: 22, height: 22, fontSize: '0.7rem' }}>
+                          <i className="bi bi-shield-fill"></i>
+                        </div>
+                        <span>Administrador SENA (Superadmin)</span>
+                      </div>
+                      {(currentUser?.username === 'admin' || currentUser?.role === 'superadmin') && currentUser?.id !== 1 && <i className="bi bi-check2 text-warning fw-bold"></i>}
                     </button>
 
                     <div className="dropdown-divider my-2"></div>
@@ -298,6 +345,13 @@ export default function Navbar({ onSearch, setCurrentView }) {
           /* GUEST STATE - Clear buttons to sign in or register */
           <div className="d-flex align-items-center gap-2">
             <button
+              className="btn btn-warning btn-sm px-3 rounded-pill fw-bold text-dark shadow-sm border"
+              title="Iniciar como Administrador de inmediato"
+              onClick={() => loginAsAdmin()}
+            >
+              <i className="bi bi-shield-fill-check me-1"></i> Admin (Superadmin)
+            </button>
+            <button
               className="btn btn-outline-success btn-sm px-3 rounded-pill fw-semibold"
               onClick={() => {
                 setAuthMode('login');
@@ -314,13 +368,6 @@ export default function Navbar({ onSearch, setCurrentView }) {
               }}
             >
               <i className="bi bi-person-plus-fill me-1"></i> {t('nav.createAccount')}
-            </button>
-            <button
-              className="btn btn-light btn-sm rounded-pill px-2 border text-muted"
-              title="Quick demo access with Juan Pablo"
-              onClick={() => switchDemoUser(1)}
-            >
-              <i className="bi bi-lightning-charge-fill text-warning"></i> {t('nav.quickDemo')}
             </button>
           </div>
         )}

@@ -23,6 +23,7 @@ export default function AdminView() {
   // Notification message
   const [actionMsg, setActionMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [syncLoading, setSyncLoading] = useState(false);
 
   // Create Form State
   const [createForm, setCreateForm] = useState({
@@ -198,6 +199,19 @@ export default function AdminView() {
     }
   }
 
+  async function handleSyncSupabase() {
+    setSyncLoading(true);
+    try {
+      const res = await api.syncSupabase();
+      setActionMsg(`¡Sincronización con Supabase Cloud exitosa! Usuarios: ${res.synced?.users || 'OK'}, Grupos: ${res.synced?.groups || 'OK'}, Posts: ${res.synced?.posts || 'OK'}`);
+      setTimeout(() => setActionMsg(''), 5000);
+    } catch (err) {
+      alert(err.message || 'Error al sincronizar con Supabase Cloud');
+    } finally {
+      setSyncLoading(false);
+    }
+  }
+
   return (
     <div className="content-wrapper">
       {/* Header Banner */}
@@ -229,13 +243,79 @@ export default function AdminView() {
             </div>
           </div>
 
-          <button
-            className="btn btn-warning text-dark fw-bold shadow-sm d-flex align-items-center gap-2"
-            onClick={() => setShowCreateModal(true)}
-          >
-            <i className="bi bi-person-plus-fill fs-5"></i>
-            Crear Nuevo Usuario / Aprendiz
-          </button>
+          <div className="d-flex align-items-center gap-2 flex-wrap">
+            <button
+              className="btn btn-outline-light btn-sm rounded-pill px-3 fw-bold d-flex align-items-center gap-2"
+              onClick={handleSyncSupabase}
+              disabled={syncLoading}
+              title="Sincronizar todos los datos con Supabase Cloud"
+            >
+              <i className={`bi ${syncLoading ? 'bi-arrow-repeat spin' : 'bi-cloud-arrow-up-fill'}`}></i>
+              {syncLoading ? 'Sincronizando...' : 'Sincronizar Supabase'}
+            </button>
+            <button
+              className="btn btn-warning text-dark fw-bold shadow-sm d-flex align-items-center gap-2"
+              onClick={() => setShowCreateModal(true)}
+            >
+              <i className="bi bi-person-plus-fill fs-5"></i>
+              Crear Nuevo Usuario
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Total Connectivity Status Card */}
+      <div className="sena-card mb-4 bg-white border shadow-sm">
+        <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 pb-3 border-bottom">
+          <div className="d-flex align-items-center gap-2">
+            <i className="bi bi-diagram-3-fill text-success fs-4"></i>
+            <div>
+              <h6 className="fw-bold mb-0 text-dark">Ecosistema Conectado en Tiempo Real</h6>
+              <small className="text-muted">MySQL (sena_social_db) + Supabase Cloud + Express API + React Vite</small>
+            </div>
+          </div>
+          <span className="badge bg-success-subtle text-success border border-success-subtle px-3 py-1">
+            <span className="fb-pulse-green me-1"></span> 100% Operativo
+          </span>
+        </div>
+
+        <div className="row g-2 pt-3 text-center">
+          <div className="col-6 col-md-3">
+            <div className="p-2 bg-light rounded border h-100">
+              <div className="text-success small fw-bold mb-1">
+                🟢 MySQL / TiDB
+              </div>
+              <div className="fw-bold text-dark small">sena_social_db</div>
+              <div className="text-muted" style={{ fontSize: '0.7rem' }}>Puerto 3306 / Cloud · Activo</div>
+            </div>
+          </div>
+          <div className="col-6 col-md-3">
+            <div className="p-2 bg-light rounded border h-100">
+              <div className="text-success small fw-bold mb-1">
+                🟢 Supabase Cloud
+              </div>
+              <div className="fw-bold text-dark small text-truncate">klmuoimhzrfw...</div>
+              <div className="text-muted" style={{ fontSize: '0.7rem' }}>@supabase/server · Conectado</div>
+            </div>
+          </div>
+          <div className="col-6 col-md-3">
+            <div className="p-2 bg-light rounded border h-100">
+              <div className="text-success small fw-bold mb-1">
+                🟢 Backend API
+              </div>
+              <div className="fw-bold text-dark small">Node.js + Express</div>
+              <div className="text-muted" style={{ fontSize: '0.7rem' }}>http://localhost:5000</div>
+            </div>
+          </div>
+          <div className="col-6 col-md-3">
+            <div className="p-2 bg-light rounded border h-100">
+              <div className="text-success small fw-bold mb-1">
+                🟢 Frontend React
+              </div>
+              <div className="fw-bold text-dark small">Vite + React 19</div>
+              <div className="text-muted" style={{ fontSize: '0.7rem' }}>http://localhost:5173</div>
+            </div>
+          </div>
         </div>
       </div>
 

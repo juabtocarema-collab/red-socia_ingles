@@ -348,4 +348,54 @@ router.get('/posts', async (req, res) => {
   }
 });
 
+// POST /api/admin/sync-supabase - Synchronize MySQL data to Supabase Cloud
+router.post('/sync-supabase', async (req, res) => {
+  try {
+    const pool = getPool();
+    const { supabase } = await import('../config/supabase.js');
+
+    const [users] = await pool.query(
+      'SELECT id, username, full_name, email, password_hash, age, occupation, origin_city, gender, phone, languages, avatar_url, cover_url, bio, program, ficha, role, status FROM users'
+    );
+    const [posts] = await pool.query(
+      'SELECT id, user_id, group_id, content, image_url, video_url, post_type FROM posts'
+    );
+    const [groups] = await pool.query(
+      'SELECT id, name, category, description, cover_image, avatar_image, created_by FROM user_groups'
+    );
+
+    let syncedUsers = 0;
+    let syncedPosts = 0;
+    let syncedGroups = 0;
+
+    for (const u of users) {
+      const { error } = await supabase.from('users').upsert(u);
+      if (!error) syncedUsers++;
+    }
+
+    for (const g of groups) {
+      const { error } = await supabase.from('user_groups').upsert(g);
+      if (!error) syncedGroups++;
+    }
+
+    for (const p of posts) {
+      const { error } = await supabase.from('posts').upsert(p);
+      if (!error) syncedPosts++;
+    }
+
+    res.json({
+      message: 'Sincronización con Supabase Cloud realizada con éxito.',
+      synced: {
+        users: `${syncedUsers} / ${users.length}`,
+        groups: `${syncedGroups} / ${groups.length}`,
+        posts: `${syncedPosts} / ${posts.length}`
+      },
+      supabase_url: process.env.SUPABASE_URL
+    });
+  } catch (error) {
+    console.error('Error al sincronizar con Supabase:', error);
+    res.status(500).json({ error: error.message || 'Error al sincronizar con Supabase' });
+  }
+});
+
 export default router;

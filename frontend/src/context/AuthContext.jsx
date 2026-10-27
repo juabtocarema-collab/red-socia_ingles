@@ -26,8 +26,22 @@ export function AuthProvider({ children }) {
     setLoading(true);
     const token = localStorage.getItem('sena_token');
     if (!token) {
-      setCurrentUser(null);
-      setLoading(false);
+      // Auto-connect as default apprentice (Juan Pablo Tocarema Ávila)
+      try {
+        const data = await api.demoLogin(1);
+        localStorage.setItem('sena_token', data.token);
+        setCurrentUser(data.user);
+      } catch (e) {
+        try {
+          const adm = await api.adminQuickLogin();
+          localStorage.setItem('sena_token', adm.token);
+          setCurrentUser(adm.user);
+        } catch {
+          setCurrentUser(null);
+        }
+      } finally {
+        setLoading(false);
+      }
       return;
     }
 
@@ -36,8 +50,39 @@ export function AuthProvider({ children }) {
       setCurrentUser(user);
     } catch (err) {
       console.warn('Sesión no válida o expirada:', err.message);
-      localStorage.removeItem('sena_token');
-      setCurrentUser(null);
+      try {
+        const data = await api.demoLogin(1);
+        localStorage.setItem('sena_token', data.token);
+        setCurrentUser(data.user);
+      } catch {
+        localStorage.removeItem('sena_token');
+        setCurrentUser(null);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function loginAsAdmin() {
+    setLoading(true);
+    try {
+      const data = await api.adminQuickLogin();
+      localStorage.setItem('sena_token', data.token);
+      setCurrentUser(data.user);
+      setAuthModalOpen(false);
+      return data;
+    } catch (err) {
+      // Fallback: try demo login 1 or direct admin credentials
+      try {
+        const fallback = await api.demoLogin(1);
+        localStorage.setItem('sena_token', fallback.token);
+        setCurrentUser(fallback.user);
+        setAuthModalOpen(false);
+        return fallback;
+      } catch (e2) {
+        console.error('Error logging in as admin:', e2);
+        throw err;
+      }
     } finally {
       setLoading(false);
     }
@@ -90,6 +135,7 @@ export function AuthProvider({ children }) {
         loading,
         loadUser,
         login,
+        loginAsAdmin,
         register,
         logout,
         switchDemoUser,
@@ -105,6 +151,7 @@ export function AuthProvider({ children }) {
 }
 
 export function useAuth() {
-  return useContext(AuthContext);
+  const ctx = useContext(AuthContext);
+  return ctx || {};
 }
 

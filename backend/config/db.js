@@ -35,8 +35,7 @@ async function tryAutoStartMysql() {
 }
 
 export async function initDB() {
-  const TIDB_CLOUD_URL = 'mysql://5TcvRzgdUnG5tBv.root:p7Uyq2M7xCda14eP@gateway01.us-east-1.prod.aws.tidbcloud.com:4000/sena_social_db';
-  const dbUrlString = process.env.DATABASE_URL || process.env.MYSQL_URL || (process.env.RENDER || process.env.NODE_ENV === 'production' ? TIDB_CLOUD_URL : null);
+  const dbUrlString = process.env.DATABASE_URL || process.env.MYSQL_URL || null;
   const isRemote = Boolean(dbUrlString || (DB_HOST !== '127.0.0.1' && DB_HOST !== 'localhost'));
 
   let poolConfig;
@@ -50,8 +49,10 @@ export async function initDB() {
         password: decodeURIComponent(parsedUrl.password),
         database: parsedUrl.pathname.replace(/^\//, '') || DB_NAME,
         waitForConnections: true,
-        connectionLimit: 10,
+        connectionLimit: 15,
         queueLimit: 0,
+        enableKeepAlive: true,
+        keepAliveInitialDelay: 10000,
         ssl: { rejectUnauthorized: false }
       };
     } catch {
@@ -65,8 +66,10 @@ export async function initDB() {
       database: DB_NAME,
       port: DB_PORT,
       waitForConnections: true,
-      connectionLimit: 10,
+      connectionLimit: 15,
       queueLimit: 0,
+      enableKeepAlive: true,
+      keepAliveInitialDelay: 10000,
       ssl: (isRemote || process.env.DB_SSL === 'true') ? { rejectUnauthorized: false } : undefined
     };
   }
@@ -141,6 +144,7 @@ async function createTables() {
       program VARCHAR(150) DEFAULT 'Análisis y Desarrollo de Software',
       ficha VARCHAR(50) DEFAULT 'Ficha 2670142',
       role VARCHAR(20) DEFAULT 'aprendiz',
+      status VARCHAR(20) DEFAULT 'active',
       is_online BOOLEAN DEFAULT TRUE,
       last_active_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -291,12 +295,71 @@ async function createTables() {
   for (const q of queries) {
     await pool.query(q);
   }
+
+  // Self-healing: Ensure status column exists in users table
+  try {
+    const [cols] = await pool.query('DESCRIBE users');
+    if (!cols.some(c => c.Field === 'status')) {
+      await pool.query("ALTER TABLE users ADD COLUMN status VARCHAR(20) DEFAULT 'active' AFTER role");
+      console.log('✅ Columna status agregada automáticamente a la tabla users.');
+    }
+  } catch (err) {
+    console.warn('Advertencia al verificar columna status:', err.message);
+  }
 }
 
 async function seedInitialData() {
+  // Always guarantee that an official admin user exists
+  try {
+    const [adminCheck] = await pool.query("SELECT id FROM users WHERE username = 'admin' OR email = 'admin@sena.edu.co'");
+    if (adminCheck.length === 0) {
+      const adminPass = await bcrypt.hash('admin', 10);
+      const [adm] = await pool.query(
+        `INSERT INTO users (username, full_name, email, password_hash, age, occupation, origin_city, gender, phone, languages, avatar_url, cover_url, bio, program, ficha, role, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          'admin',
+          'Administrador del Sistema SENA',
+          'admin@sena.edu.co',
+          adminPass,
+          25,
+          'Super Administrador del Sistema',
+          'Espinal, Tolima',
+          'Masculino',
+          '+57 320 000 0000',
+          'Español, Inglés',
+          'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=400&q=80',
+          '/assets/sena_campus_cover.jpg',
+          'Cuenta oficial del Super Administrador de la plataforma SENA Social Network.',
+          'Dirección y Administración General',
+          'ADMIN-2026',
+          'superadmin',
+          'active'
+        ]
+      );
+      const admId = adm.insertId;
+      await pool.query(
+        `INSERT INTO interests (user_id, studies, music, movies, series, sports, food, drinks, books, games_tech)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE user_id=VALUES(user_id)`,
+        [admId, 'Gestión Integral SENA', 'Rock', 'Ciencia Ficción', 'Tecnología', 'Fútbol', 'Café', 'Agua', 'Arquitectura de Software', 'DevOps & Cloud']
+      );
+      await pool.query(
+        `INSERT INTO user_settings (user_id, profile_visibility, show_email, show_phone, allow_messages, notifications_enabled)
+         VALUES (?, 'public', TRUE, TRUE, 'everyone', TRUE) ON DUPLICATE KEY UPDATE user_id=VALUES(user_id)`,
+        [admId]
+      );
+      console.log('✅ Usuario oficial admin creado exitosamente.');
+    }
+  } catch (e) {
+    console.warn('Aviso al verificar usuario admin:', e.message);
+  }
+
+  // Check and guarantee integrity of all demo accounts (Juan Pablo, Camila, Carlos, Admin)
+  await ensureAccountsIntegrity();
+
   const [existingUsers] = await pool.query('SELECT COUNT(*) as count FROM users');
-  if (existingUsers[0].count > 0) {
-    return; // Already seeded
+  if (existingUsers[0].count > 3) {
+    return; // Already seeded with other demo users
   }
 
   console.log('🌱 Sembrando datos iniciales en sena_social_db...');
@@ -566,3 +629,260 @@ async function seedInitialData() {
 
   console.log('✅ Datos iniciales sembrados exitosamente.');
 }
+
+async function ensureAccountsIntegrity() {
+  try {
+    const defaultPassword = await bcrypt.hash('Sena2026*', 10);
+
+    // 1. Ensure Juan Pablo (juanpato27)
+    const [juanCheck] = await pool.query("SELECT id FROM users WHERE username = 'juanpato27'");
+    let juanId;
+    if (juanCheck.length === 0) {
+      const [u1] = await pool.query(
+        `INSERT INTO users (username, full_name, email, password_hash, age, occupation, origin_city, gender, phone, languages, avatar_url, cover_url, bio, program, ficha, role, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'superadmin', 'active')`,
+        [
+          'juanpato27',
+          'Juan Pablo Tocarema Ávila',
+          'juanpablotocaremaavila@gmail.com',
+          defaultPassword,
+          18,
+          'SENA Apprentice | Software Analysis and Development (ADSO)',
+          'Espinal, Tolima, Colombia',
+          'Male',
+          '+57 320 123 4567',
+          'Spanish (Native), English (Basic / Pre-intermediate)',
+          '/assets/juan_pablo_avatar.jpg',
+          '/assets/sena_campus_cover.jpg',
+          'I am a committed and responsible SENA apprentice with a strong passion for learning. I enjoy technology, programming, and video games. My goal is to become a proficient full-stack software developer and contribute to the SENA community.',
+          'Análisis y Desarrollo de Software (ADSO)',
+          'Ficha 2670142'
+        ]
+      );
+      juanId = u1.insertId;
+    } else {
+      juanId = juanCheck[0].id;
+    }
+
+    // Ensure Juan Pablo interests
+    const [jInt] = await pool.query('SELECT id FROM interests WHERE user_id = ?', [juanId]);
+    if (jInt.length === 0) {
+      await pool.query(
+        `INSERT INTO interests (user_id, studies, music, movies, series, sports, food, drinks, books, games_tech)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          juanId,
+          'I study software analysis and development, and I enjoy practicing coding and learning new technologies every day.',
+          'I usually listen to salsa music when I’m happy and vallenato when I’m sad.',
+          'I enjoy watching action, science fiction, and adventure movies on weekends.',
+          'I love binge-watching television series like Money Heist, Stranger Things, and The Last of Us.',
+          'I play soccer with my SENA classmates and I frequently go to the gym to stay healthy.',
+          'My favorite Colombian food is ajiaco, and I also love eating bandeja paisa with my family.',
+          'I usually drink plenty of fresh water, and I enjoy a hot cup of Colombian coffee every morning.',
+          'I like reading software engineering books, tech blogs, and personal development guides.',
+          'I enjoy playing strategy and adventure video games during my free time, and exploring artificial intelligence tools.'
+        ]
+      );
+    }
+    await pool.query(
+      `INSERT INTO user_settings (user_id, profile_visibility, show_email, show_phone, allow_messages, notifications_enabled)
+       VALUES (?, 'public', TRUE, TRUE, 'everyone', TRUE) ON DUPLICATE KEY UPDATE user_id=VALUES(user_id)`,
+      [juanId]
+    );
+
+    // 2. Ensure Camila Rodríguez (camilarodz)
+    const [camilaCheck] = await pool.query("SELECT id FROM users WHERE username = 'camilarodz'");
+    let camilaId;
+    if (camilaCheck.length === 0) {
+      const [u2] = await pool.query(
+        `INSERT INTO users (username, full_name, email, password_hash, age, occupation, origin_city, gender, phone, languages, avatar_url, cover_url, bio, program, ficha, role, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'aprendiz', 'active')`,
+        [
+          'camilarodz',
+          'Camila Rodríguez',
+          'camila.rodriguez@sena.edu.co',
+          defaultPassword,
+          19,
+          'Aprendiz SENA | Gestión de Redes de Datos',
+          'Ibagué, Tolima',
+          'Femenino',
+          '+57 311 987 6543',
+          'Español (nativo), Inglés (intermedio)',
+          '/assets/camila_avatar.jpg',
+          '/assets/sena_campus_cover.jpg',
+          'Apasionada por la seguridad informática, las redes Cisco y el trabajo colaborativo en el SENA.',
+          'Gestión de Redes de Datos',
+          'Ficha 2670142'
+        ]
+      );
+      camilaId = u2.insertId;
+    } else {
+      camilaId = camilaCheck[0].id;
+    }
+
+    const [cInt] = await pool.query('SELECT id FROM interests WHERE user_id = ?', [camilaId]);
+    if (cInt.length === 0) {
+      await pool.query(
+        `INSERT INTO interests (user_id, studies, music, movies, series, sports, food, drinks, books, games_tech)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          camilaId,
+          'I am specializing in network security, Cisco routing, and cloud infrastructure with AWS.',
+          'I love indie pop, alternative rock, and Spanish acoustic ballads.',
+          'My favorite movies are Interstellar, The Matrix, and The Social Network.',
+          'I enjoy watching technology series like Mr. Robot, Dark, and Silicon Valley.',
+          'I play volleyball with my SENA classmates and I practice swimming on weekends.',
+          'My favorite Colombian meal is traditional Tolima lechona served with crispy arepa.',
+          'I enjoy hot latte coffee in the morning and soothing iced green tea in the afternoon.',
+          'I read Clean Code, network administration handbooks, and cybersecurity guides.',
+          'I participate in ethical hacking CTF challenges and network simulation labs.'
+        ]
+      );
+    }
+    await pool.query(
+      `INSERT INTO user_settings (user_id, profile_visibility, show_email, show_phone, allow_messages, notifications_enabled)
+       VALUES (?, 'public', TRUE, TRUE, 'everyone', TRUE) ON DUPLICATE KEY UPDATE user_id=VALUES(user_id)`,
+      [camilaId]
+    );
+
+    // 3. Ensure Carlos Andrés Mendoza (carlos_mendoza)
+    const [carlosCheck] = await pool.query("SELECT id FROM users WHERE username = 'carlos_mendoza'");
+    let carlosId;
+    if (carlosCheck.length === 0) {
+      const [u3] = await pool.query(
+        `INSERT INTO users (username, full_name, email, password_hash, age, occupation, origin_city, gender, phone, languages, avatar_url, cover_url, bio, program, ficha, role, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'aprendiz', 'active')`,
+        [
+          'carlos_mendoza',
+          'Carlos Andrés Mendoza',
+          'cmendoza@sena.edu.co',
+          defaultPassword,
+          20,
+          'Aprendiz SENA | Animación 3D y Multimedia',
+          'Bogotá D.C., Colombia',
+          'Masculino',
+          '+57 315 456 7890',
+          'Español (nativo), Inglés (básico), Francés (básico)',
+          'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
+          '/assets/sena_campus_cover.jpg',
+          'Modelado 3D en Blender, texturizado PBR y diseño de videojuegos independientes con Unreal Engine.',
+          'Animación 3D y Multimedia',
+          'Ficha 2589011'
+        ]
+      );
+      carlosId = u3.insertId;
+    } else {
+      carlosId = carlosCheck[0].id;
+    }
+
+    // Carlos Interests (English Evidence)
+    const [carInt] = await pool.query('SELECT id FROM interests WHERE user_id = ?', [carlosId]);
+    if (carInt.length === 0) {
+      await pool.query(
+        `INSERT INTO interests (user_id, studies, music, movies, series, sports, food, drinks, books, games_tech)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          carlosId,
+          'I study 3D digital animation and multimedia, focusing on high-poly modeling, lighting, and game environments.',
+          'I listen to electronic synthwave, lo-fi beats, and progressive rock while rendering 3D scenes.',
+          'I enjoy animated movies from Pixar, Studio Ghibli, and sci-fi films like Blade Runner 2049 and Tron.',
+          'I enjoy watching animated series like Love Death & Robots, Arcane, and Cyberpunk Edgerunners.',
+          'I enjoy urban cycling around Bogotá and playing basketball with friends on sunny days.',
+          'My favorite food is Colombian bandeja paisa, hot empanadas, and homemade Italian pasta.',
+          'I enjoy freshly brewed Colombian coffee and cold fruit juices like blackberry and passion fruit.',
+          'I read 3D computer graphics textbooks, concept art books, and digital cinematography guides.',
+          'I play indie games in Unreal Engine and Unity, and I develop VR interactive prototypes.'
+        ]
+      );
+    }
+    await pool.query(
+      `INSERT INTO user_settings (user_id, profile_visibility, show_email, show_phone, allow_messages, notifications_enabled)
+       VALUES (?, 'public', TRUE, TRUE, 'everyone', TRUE) ON DUPLICATE KEY UPDATE user_id=VALUES(user_id)`,
+      [carlosId]
+    );
+
+    // 4. Admin User (admin)
+    const [adminCheck] = await pool.query("SELECT id FROM users WHERE username = 'admin'");
+    const adminId = adminCheck[0]?.id;
+
+    // 5. Ensure Friendships between all demo accounts
+    const pairs = [
+      [juanId, camilaId],
+      [juanId, carlosId],
+      [camilaId, carlosId]
+    ];
+    if (adminId) {
+      pairs.push([adminId, juanId]);
+      pairs.push([adminId, camilaId]);
+      pairs.push([adminId, carlosId]);
+    }
+
+    for (const [uid, fid] of pairs) {
+      if (!uid || !fid) continue;
+      const [existingFriendship] = await pool.query(
+        'SELECT id FROM friendships WHERE (user_id = ? AND friend_id = ?) OR (user_id = ? AND friend_id = ?)',
+        [uid, fid, fid, uid]
+      );
+      if (existingFriendship.length === 0) {
+        await pool.query(
+          "INSERT INTO friendships (user_id, friend_id, status) VALUES (?, ?, 'accepted')",
+          [uid, fid]
+        );
+      }
+    }
+
+    // 6. Ensure Posts from each user
+    const [carlosPosts] = await pool.query('SELECT id FROM posts WHERE user_id = ?', [carlosId]);
+    if (carlosPosts.length === 0) {
+      await pool.query(
+        `INSERT INTO posts (user_id, content, image_url, post_type)
+         VALUES (?, ?, ?, 'general')`,
+        [
+          carlosId,
+          '¡Hola a toda la comunidad SENA! 👋 Acabo de finalizar este modelo 3D en Blender para la evidencia de multimedia. ¿Qué les parece la iluminación y las texturas? 🎨🎮',
+          'https://images.unsplash.com/photo-1618401471353-b98aedd04e11?auto=format&fit=crop&w=800&q=80'
+        ]
+      );
+    }
+
+    if (adminId) {
+      const [adminPosts] = await pool.query('SELECT id FROM posts WHERE user_id = ?', [adminId]);
+      if (adminPosts.length === 0) {
+        await pool.query(
+          `INSERT INTO posts (user_id, content, post_type)
+           VALUES (?, ?, 'general')`,
+          [
+            adminId,
+            '📢 Bienvenidos a la Red Social Oficial SENA. Este entorno virtual académico integra formación integral, bilingüismo (Evidencia de Inglés) y trabajo colaborativo entre aprendices e instructores. ¡Éxitos en el trimestre! 💚🇨🇴'
+          ]
+        );
+      }
+    }
+
+    // 7. Ensure Messages for Carlos and Admin
+    const [carlosMsgs] = await pool.query(
+      'SELECT id FROM messages WHERE sender_id = ? OR receiver_id = ?',
+      [carlosId, carlosId]
+    );
+    if (carlosMsgs.length === 0) {
+      await pool.query(
+        `INSERT INTO messages (sender_id, receiver_id, message, is_read) VALUES
+         (?, ?, '¡Hola Juan Pablo! ¿Cómo va el proyecto de software en ADSO?', TRUE),
+         (?, ?, '¡Hola Carlos! Muy bien, ya integramos la base de datos y la interfaz en inglés.', TRUE),
+         (?, ?, 'Genial, avísame si necesitan nuevos modelos 3D o assets multimedia.', FALSE)`,
+        [carlosId, juanId, juanId, carlosId, carlosId, juanId]
+      );
+      await pool.query(
+        `INSERT INTO messages (sender_id, receiver_id, message, is_read) VALUES
+         (?, ?, 'Hola Camila, ¿me confirmas la hora del taller de Docker y Linux?', TRUE),
+         (?, ?, '¡Hola Carlos! Sí, mañana a las 9:00 AM puntual por la sala virtual.', FALSE)`,
+        [carlosId, camilaId, camilaId, carlosId]
+      );
+    }
+
+    console.log('✅ Integridad de cuentas demo (Juan Pablo, Camila, Carlos, Admin) verificada.');
+  } catch (err) {
+    console.warn('Advertencia en ensureAccountsIntegrity:', err.message);
+  }
+}
+

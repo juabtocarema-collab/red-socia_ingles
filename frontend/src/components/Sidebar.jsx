@@ -4,7 +4,7 @@ import { useLanguage } from '../context/LanguageContext';
 import LanguageSwitcher from './LanguageSwitcher';
 
 export default function Sidebar({ currentView, setCurrentView, unreadMessagesCount = 2 }) {
-  const { currentUser, setAuthModalOpen, setAuthMode } = useAuth();
+  const { currentUser, loginAsAdmin, setAuthModalOpen, setAuthMode } = useAuth();
   const { t } = useLanguage();
 
   const isAdmin = currentUser?.role === 'superadmin' || currentUser?.role === 'admin';
@@ -66,6 +66,13 @@ export default function Sidebar({ currentView, setCurrentView, unreadMessagesCou
         ) : (
           <div className="p-2 rounded mt-2 bg-dark bg-opacity-25 text-center">
             <div className="text-light small mb-1" style={{ fontSize: '0.75rem' }}>{t('nav.guestMode')}</div>
+            <button
+              className="btn btn-sm btn-warning w-100 py-1 mb-1 fw-bold text-dark shadow-sm"
+              style={{ fontSize: '0.75rem' }}
+              onClick={() => loginAsAdmin()}
+            >
+              <i className="bi bi-shield-fill-check me-1"></i> Iniciar como Admin
+            </button>
             <button
               className="btn btn-sm btn-success w-100 py-1 fw-bold text-white"
               style={{ fontSize: '0.75rem' }}

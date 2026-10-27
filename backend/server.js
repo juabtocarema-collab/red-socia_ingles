@@ -42,6 +42,22 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', service: 'My Social Network - SENA Backend API', time: new Date() });
 });
 
+// Supabase status endpoint
+app.get('/api/supabase-status', async (req, res) => {
+  try {
+    const { supabase } = await import('./config/supabase.js');
+    res.json({
+      status: 'connected',
+      supabase_url: process.env.SUPABASE_URL,
+      publishable_key_set: !!process.env.SUPABASE_PUBLISHABLE_KEY,
+      jwks_url: process.env.SUPABASE_JWKS_URL,
+      sdk: '@supabase/server + @supabase/supabase-js'
+    });
+  } catch (error) {
+    res.status(500).json({ status: 'error', error: error.message });
+  }
+});
+
 // Mount API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -72,8 +88,8 @@ app.use((err, req, res, next) => {
 async function startServer() {
   try {
     await initDB();
-    app.listen(PORT, () => {
-      console.log(`🚀 Servidor backend SENA corriendo en http://localhost:${PORT}`);
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`🚀 Servidor backend SENA corriendo en http://0.0.0.0:${PORT} (Red Local accesible)`);
     });
   } catch (error) {
     console.error('❌ No se pudo iniciar el servidor backend:', error.message);

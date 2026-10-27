@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 
 export default function AuthModal({ isOpen, onClose }) {
-  const { authMode, setAuthMode, login, register, switchDemoUser } = useAuth();
+  const { authMode, setAuthMode, login, loginAsAdmin, register, switchDemoUser } = useAuth();
   const { t, setDataPolicyModalOpen, language } = useLanguage();
 
   const [loginInput, setLoginInput] = useState('');
@@ -132,6 +132,39 @@ export default function AuthModal({ isOpen, onClose }) {
             {authMode === 'login' ? (
               /* LOGIN FORM */
               <form onSubmit={handleLoginSubmit}>
+                {/* Instant 1-Click Admin Button */}
+                <div className="p-3 mb-3 rounded-3 border border-warning shadow-sm" style={{ background: 'linear-gradient(135deg, #fff9e6 0%, #fffdf5 100%)' }}>
+                  <div className="d-flex align-items-center justify-content-between mb-2">
+                    <span className="fw-bold text-dark small d-flex align-items-center gap-1">
+                      <i className="bi bi-shield-fill-check text-warning fs-5"></i>
+                      <span>Acceso Maestro Administrador</span>
+                    </span>
+                    <span className="badge bg-warning text-dark border border-warning fw-bold">Superadmin</span>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-warning w-100 fw-bold py-2 shadow-sm text-dark d-flex align-items-center justify-content-center gap-2"
+                    onClick={async () => {
+                      setLoading(true);
+                      try {
+                        await loginAsAdmin();
+                        onClose();
+                      } catch (err) {
+                        setErrorMsg(err.message || 'Error al iniciar sesión de administrador');
+                      } finally {
+                        setLoading(false);
+                      }
+                    }}
+                    disabled={loading}
+                  >
+                    <i className="bi bi-lightning-charge-fill"></i>
+                    <span>Iniciar a Toda Costa como Administrador</span>
+                  </button>
+                  <div className="text-center mt-2 text-muted" style={{ fontSize: '0.72rem' }}>
+                    1 Clic directo · Control total del sistema SENA Social
+                  </div>
+                </div>
+
                 <div className="mb-3">
                   <label className="form-label fw-bold small">{t('auth.usernameOrEmail')}</label>
                   <div className="input-group">
@@ -162,9 +195,16 @@ export default function AuthModal({ isOpen, onClose }) {
                   </div>
                 </div>
 
-                <div className="p-2 mb-3 bg-light rounded small text-muted border">
-                  <i className="bi bi-info-circle text-primary me-1"></i>
-                  {t('auth.mysqlNoteLogin')}
+                <div className="p-2 mb-3 bg-light rounded small text-dark border">
+                  <div className="fw-semibold text-primary mb-1">
+                    <i className="bi bi-key-fill me-1"></i> Credenciales Disponibles:
+                  </div>
+                  <div className="text-muted" style={{ fontSize: '0.75rem', lineHeight: '1.4' }}>
+                    • <strong>Admin SENA:</strong> <code>admin</code> / <code>admin</code> (o <code>Sena2026*</code>)<br/>
+                    • <strong>Juan Pablo (ADSO):</strong> <code>juanpato27</code> / <code>Sena2026*</code><br/>
+                    • <strong>Camila (Redes):</strong> <code>camilarodz</code> / <code>Sena2026*</code><br/>
+                    • <strong>Carlos (Animación 3D):</strong> <code>carlos_mendoza</code> / <code>Sena2026*</code>
+                  </div>
                 </div>
 
                 <button type="submit" className="sena-btn-primary w-100 py-2 mb-3" disabled={loading}>
@@ -174,12 +214,32 @@ export default function AuthModal({ isOpen, onClose }) {
                 {/* Quick Demo Access */}
                 <div className="text-center pt-2 border-top">
                   <div className="text-muted small mb-2">{t('auth.quickDemoTitle')}</div>
-                  <div className="d-flex gap-2 justify-content-center">
+                  <div className="d-flex gap-2 justify-content-center flex-wrap">
+                    <button
+                      type="button"
+                      className="btn btn-warning btn-sm rounded-pill px-3 fw-bold text-dark border shadow-sm"
+                      onClick={async () => {
+                        setLoading(true);
+                        try {
+                          await loginAsAdmin();
+                          onClose();
+                        } catch (err) {
+                          setErrorMsg(err.message || 'Error admin');
+                        } finally {
+                          setLoading(false);
+                        }
+                      }}
+                    >
+                      <i className="bi bi-shield-lock-fill me-1"></i> Admin (Superadmin)
+                    </button>
                     <button type="button" className="btn btn-outline-success btn-sm rounded-pill px-3" onClick={() => { switchDemoUser(1); onClose(); }}>
-                      <i className="bi bi-person-fill me-1"></i> {t('auth.demoJuan')}
+                      <i className="bi bi-person-fill me-1"></i> Juan Pablo (ADSO)
                     </button>
                     <button type="button" className="btn btn-outline-primary btn-sm rounded-pill px-3" onClick={() => { switchDemoUser(2); onClose(); }}>
-                      <i className="bi bi-person-fill me-1"></i> {t('auth.demoCamila')}
+                      <i className="bi bi-person-fill me-1"></i> Camila (Redes)
+                    </button>
+                    <button type="button" className="btn btn-outline-info btn-sm rounded-pill px-3" onClick={() => { switchDemoUser(3); onClose(); }}>
+                      <i className="bi bi-person-fill me-1"></i> Carlos (3D)
                     </button>
                   </div>
                 </div>
