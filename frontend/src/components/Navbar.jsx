@@ -271,9 +271,9 @@ export default function Navbar({ onSearch, setCurrentView }) {
                       {t('nav.switchDemo')}
                     </div>
                     <button
-                      className={`dropdown-item py-2 px-3 small d-flex align-items-center justify-content-between ${currentUser?.id === 1 ? 'fw-bold bg-light' : ''}`}
+                      className={`dropdown-item py-2 px-3 small d-flex align-items-center justify-content-between ${currentUser?.username === 'juanpato27' ? 'fw-bold bg-light' : ''}`}
                       onClick={() => {
-                        switchDemoUser(1);
+                        switchDemoUser('juanpato27');
                         setShowUserMenu(false);
                       }}
                     >
@@ -281,12 +281,12 @@ export default function Navbar({ onSearch, setCurrentView }) {
                         <img src="/assets/juan_pablo_avatar.jpg" className="rounded-circle" style={{ width: 22, height: 22, objectFit: 'cover' }} />
                         <span>Juan Pablo Tocarema (ADSO)</span>
                       </div>
-                      {currentUser?.id === 1 && <i className="bi bi-check2 text-success fw-bold"></i>}
+                      {currentUser?.username === 'juanpato27' && <i className="bi bi-check2 text-success fw-bold"></i>}
                     </button>
                     <button
-                      className={`dropdown-item py-2 px-3 small d-flex align-items-center justify-content-between ${currentUser?.id === 2 ? 'fw-bold bg-light' : ''}`}
+                      className={`dropdown-item py-2 px-3 small d-flex align-items-center justify-content-between ${currentUser?.username === 'camilarodz' ? 'fw-bold bg-light' : ''}`}
                       onClick={() => {
-                        switchDemoUser(2);
+                        switchDemoUser('camilarodz');
                         setShowUserMenu(false);
                       }}
                     >
@@ -294,12 +294,12 @@ export default function Navbar({ onSearch, setCurrentView }) {
                         <img src="/assets/camila_avatar.jpg" className="rounded-circle" style={{ width: 22, height: 22, objectFit: 'cover' }} />
                         <span>Camila Rodríguez (Redes)</span>
                       </div>
-                      {currentUser?.id === 2 && <i className="bi bi-check2 text-success fw-bold"></i>}
+                      {currentUser?.username === 'camilarodz' && <i className="bi bi-check2 text-success fw-bold"></i>}
                     </button>
                     <button
-                      className={`dropdown-item py-2 px-3 small d-flex align-items-center justify-content-between ${currentUser?.id === 3 ? 'fw-bold bg-light' : ''}`}
+                      className={`dropdown-item py-2 px-3 small d-flex align-items-center justify-content-between ${currentUser?.username === 'carlos_mendoza' ? 'fw-bold bg-light' : ''}`}
                       onClick={() => {
-                        switchDemoUser(3);
+                        switchDemoUser('carlos_mendoza');
                         setShowUserMenu(false);
                       }}
                     >
@@ -307,10 +307,10 @@ export default function Navbar({ onSearch, setCurrentView }) {
                         <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80" className="rounded-circle" style={{ width: 22, height: 22, objectFit: 'cover' }} />
                         <span>Carlos Andrés Mendoza (Animación 3D)</span>
                       </div>
-                      {currentUser?.id === 3 && <i className="bi bi-check2 text-success fw-bold"></i>}
+                      {currentUser?.username === 'carlos_mendoza' && <i className="bi bi-check2 text-success fw-bold"></i>}
                     </button>
                     <button
-                      className={`dropdown-item py-2 px-3 small d-flex align-items-center justify-content-between ${(currentUser?.username === 'admin' || currentUser?.role === 'superadmin') && currentUser?.id !== 1 ? 'fw-bold bg-light' : ''}`}
+                      className={`dropdown-item py-2 px-3 small d-flex align-items-center justify-content-between ${currentUser?.username === 'admin' ? 'fw-bold bg-light' : ''}`}
                       onClick={() => {
                         switchDemoUser('admin');
                         setShowUserMenu(false);
@@ -322,7 +322,7 @@ export default function Navbar({ onSearch, setCurrentView }) {
                         </div>
                         <span>Administrador SENA (Superadmin)</span>
                       </div>
-                      {(currentUser?.username === 'admin' || currentUser?.role === 'superadmin') && currentUser?.id !== 1 && <i className="bi bi-check2 text-warning fw-bold"></i>}
+                      {currentUser?.username === 'admin' && <i className="bi bi-check2 text-warning fw-bold"></i>}
                     </button>
 
                     <div className="dropdown-divider my-2"></div>

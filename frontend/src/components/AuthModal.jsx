@@ -232,13 +232,13 @@ export default function AuthModal({ isOpen, onClose }) {
                     >
                       <i className="bi bi-shield-lock-fill me-1"></i> Admin (Superadmin)
                     </button>
-                    <button type="button" className="btn btn-outline-success btn-sm rounded-pill px-3" onClick={() => { switchDemoUser(1); onClose(); }}>
+                    <button type="button" className="btn btn-outline-success btn-sm rounded-pill px-3" onClick={() => { switchDemoUser('juanpato27'); onClose(); }}>
                       <i className="bi bi-person-fill me-1"></i> Juan Pablo (ADSO)
                     </button>
-                    <button type="button" className="btn btn-outline-primary btn-sm rounded-pill px-3" onClick={() => { switchDemoUser(2); onClose(); }}>
+                    <button type="button" className="btn btn-outline-primary btn-sm rounded-pill px-3" onClick={() => { switchDemoUser('camilarodz'); onClose(); }}>
                       <i className="bi bi-person-fill me-1"></i> Camila (Redes)
                     </button>
-                    <button type="button" className="btn btn-outline-info btn-sm rounded-pill px-3" onClick={() => { switchDemoUser(3); onClose(); }}>
+                    <button type="button" className="btn btn-outline-info btn-sm rounded-pill px-3" onClick={() => { switchDemoUser('carlos_mendoza'); onClose(); }}>
                       <i className="bi bi-person-fill me-1"></i> Carlos (3D)
                     </button>
                   </div>

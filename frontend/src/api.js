@@ -215,13 +215,22 @@ export const api = {
     return callOrSupabase(
       () => safeFetch(`/auth/demo/${userId}`),
       async () => {
-        const targetId = parseInt(userId) || 2;
-        const { data: user } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', targetId)
-          .single();
+        let query = supabase.from('users').select('*');
+        if (userId === 'admin' || userId === 1 || userId === '1') {
+          query = query.eq('username', 'admin');
+        } else if (userId === 'juanpato27' || userId === 2 || userId === '2') {
+          query = query.eq('username', 'juanpato27');
+        } else if (userId === 'camilarodz' || userId === 3 || userId === '3') {
+          query = query.eq('username', 'camilarodz');
+        } else if (userId === 'carlos_mendoza' || userId === 4 || userId === '4') {
+          query = query.eq('username', 'carlos_mendoza');
+        } else if (typeof userId === 'string' && isNaN(Number(userId))) {
+          query = query.eq('username', userId);
+        } else {
+          query = query.eq('id', Number(userId));
+        }
 
+        const { data: user } = await query.maybeSingle();
         const activeUser = user || DEFAULT_USER;
         const token = 'supabase_token_' + activeUser.id;
         localStorage.setItem('sena_token', token);
@@ -265,14 +274,22 @@ export const api = {
         body: JSON.stringify(userData)
       }),
       async () => {
+        const { password, confirm_password, ...rest } = userData;
         const newUser = {
-          ...userData,
+          ...rest,
+          password_hash: password || '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
           role: 'aprendiz',
           status: 'active',
-          avatar_url: userData.avatar_url || '/assets/juan_pablo_avatar.jpg'
+          avatar_url: userData.avatar_url || '/assets/juan_pablo_avatar.jpg',
+          cover_url: userData.cover_url || '/assets/sena_campus_cover.jpg'
         };
         const { data, error } = await supabase.from('users').insert([newUser]).select().single();
         if (error) throw new Error(error.message);
+
+        // Inicializar intereses y configuración
+        await supabase.from('interests').upsert({ user_id: data.id, ...DEFAULT_INTERESTS }).catch(() => {});
+        await supabase.from('user_settings').upsert({ user_id: data.id, profile_visibility: 'public' }).catch(() => {});
+
         const token = 'supabase_token_' + data.id;
         localStorage.setItem('sena_token', token);
         localStorage.setItem('sena_user', JSON.stringify(data));
@@ -288,7 +305,19 @@ export const api = {
         const cached = localStorage.getItem('sena_user');
         if (cached) {
           try {
-            return JSON.parse(cached);
+            const userObj = JSON.parse(cached);
+            if (userObj && userObj.id) {
+              const { data: freshUser } = await supabase
+                .from('users')
+                .select('*')
+                .eq('id', userObj.id)
+                .maybeSingle();
+              if (freshUser) {
+                localStorage.setItem('sena_user', JSON.stringify(freshUser));
+                return freshUser;
+              }
+              return userObj;
+            }
           } catch (e) {}
         }
         const { data: user } = await supabase
